@@ -5368,10 +5368,13 @@
             const b = getBackend();
             const { method = 'GET', body = null, token = null } = opts;
             let res;
+            const headers = { 'apikey': b.anonKey, 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+            else if (!b.anonKey.startsWith('sb_')) headers['Authorization'] = 'Bearer ' + b.anonKey;
             try {
                 res = await fetch(b.url + path, {
                     method,
-                    headers: { 'apikey': b.anonKey, 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (token || b.anonKey) },
+                    headers,
                     body: body ? JSON.stringify(body) : undefined
                 });
             } catch (_) {
@@ -5654,9 +5657,9 @@
                     <button onclick="closeUtilityModal()" class="text-wt-muted hover:text-white text-sm">✕</button>
                 </div>
                 <div class="space-y-3 text-xs">
-                    <p class="text-[11px] text-wt-muted leading-relaxed">สำหรับผู้ดูแลระบบ วางค่า Project URL และ anon public key จาก Supabase (ห้ามใส่ service_role key เด็ดขาด)</p>
+                    <p class="text-[11px] text-wt-muted leading-relaxed">สำหรับผู้ดูแลระบบ วางค่า Project URL และ Publishable key (ขึ้นต้นด้วย sb_publishable_) จาก Supabase (ห้ามใส่ secret key หรือ service_role key เด็ดขาด)</p>
                     <div><label class="block text-[10px] font-bold text-wt-muted mb-1">Project URL</label><input type="url" id="be-url" value="${escapeHtml(b.url)}" placeholder="https://xxxx.supabase.co" class="${inp}"></div>
-                    <div><label class="block text-[10px] font-bold text-wt-muted mb-1">anon public key</label><textarea id="be-key" rows="3" class="${inp}">${escapeHtml(b.anonKey)}</textarea></div>
+                    <div><label class="block text-[10px] font-bold text-wt-muted mb-1">Publishable key</label><textarea id="be-key" rows="3" class="${inp}">${escapeHtml(b.anonKey)}</textarea></div>
                     <div id="be-result" class="text-[11px]"></div>
                     <div class="grid grid-cols-2 gap-2">
                         <button onclick="testBackendSettings()" class="py-2.5 rounded-lg bg-wt-card border border-wt-border text-white font-bold text-xs">ทดสอบการเชื่อมต่อ</button>
@@ -5690,6 +5693,7 @@
             const url = (document.getElementById('be-url')?.value || '').trim().replace(/\/+$/, '');
             const key = (document.getElementById('be-key')?.value || '').trim();
             if (!/^https:\/\//.test(url) || key.length < 20) { showToast('กรอก URL และ key ให้ถูกต้องก่อน'); return; }
+            if (key.startsWith('sb_secret_')) { showToast('นี่คือ secret key ห้ามใช้ในแอป กรุณาใช้ publishable key (sb_publishable_...)'); return; }
             if (key.split('.').length === 3) {
                 try {
                     const payload = JSON.parse(atob(key.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
